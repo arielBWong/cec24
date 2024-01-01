@@ -67,7 +67,7 @@ classdef solutions < handle
             obj.merge(another_solutions);
         end
 
-        function nd_sort(obj, varargin)
+        function nd_sort(obj, varargin) % only ND is kept in this sorting
             % convert cell array to matrix
             tmpFU = obj.FUs;
             tmpFL = obj.FLs;
@@ -89,7 +89,7 @@ classdef solutions < handle
 
             % keep ND
             ndXU = pop.X(nd_front_id, :);
-            if isempty(varargin) 
+            if isempty(varargin)  % this condition only ND related part (truncate XL, FL, FCL, FU, FC)
                 ndFU = pop.F(nd_front_id, :);
                 if ~isempty(pop.C)
                     ndFC = pop.C(nd_front_id, :);
@@ -135,7 +135,7 @@ classdef solutions < handle
 
                     if ~isempty(ndFL)
                         one_FL = ndFL(ia,:);
-                        
+
                     else
                         one_FL = [];
                     end
@@ -154,17 +154,16 @@ classdef solutions < handle
 
                     obj.add(one_xu, one_XL, one_FU, one_FL, one_FC, one_FLC);
                 end
-            else
+            else % this condition keep all record related to ND xu
                 unique_ndXU = unique(ndXU, 'rows', 'stable');
                 num_ndxu = size(unique_ndXU, 1);
                 obj.clear_data;
-
                 for ii = 1:num_ndxu
                     tmp_xu = unique_ndXU(ii, :);
                     ia = ismember(tmpXU, tmp_xu, 'rows');
 
                     one_xu = tmp_xu;
-                     if ~isempty(tmpXL)
+                    if ~isempty(tmpXL)
                         one_XL = tmpXL(ia, :);
                     else
                         one_XL = [];
@@ -194,6 +193,80 @@ classdef solutions < handle
             end
         end
 
+        function DSS_newpopulation(obj, popsize, prob)
+            % convert cell array to matrix
+            tmpFU = obj.FUs;
+            tmpFL = obj.FLs;
+            tmpFC = obj.FCs;
+            tmpFLC = obj.FLCs;
+            tmpXU = obj.XUs;
+            tmpXL = obj.XLs;
+
+            % ND sort wrapper
+            pop.X = tmpXU;
+            pop.F = tmpFU;
+            pop.C = tmpFC;
+            pop.dummy1 = tmpXL;
+            pop.dummy2 = tmpFLC;
+            pop.dummy3 = tmpFL;
+
+            [pop, front_idx] = pop_sort(pop);
+            nd_idx_binary = front_idx == 1;
+            select_candidateID = find(front_idx == 1);
+            ndXU = pop.X(nd_idx_binary, :);
+            unique_ndXU = unique(ndXU, 'rows', 'stable');
+            num_ndxu = size(unique_ndXU, 1);
+
+            if num_ndxu > popsize  % DSS selection
+                sparseXID = Sparse_Selection(select_candidateID, pop.X, prob.ul_bl, prob.ul_bu, popsize);
+                select_XU_id = select_candidateID(sparseXID);
+                % XU selected by select_XU_id should be unique (if not something is wrong)
+            else
+                tmp_uniqueXU = unique(pop.X, 'rows',  'stable');
+                [~, ~, ib] = intersect(tmp_uniqueXU, pop.X, 'stable', 'rows');
+                select_XU_id = ib(1:popsize);
+            end
+
+
+            newXU = pop.X(select_XU_id);
+            tmp_newXU = unique(newXU, "rows", 'stable');
+            assert(size(tmp_newXU, 1) == size(newXU, 1), 'DSS selection return repeated solutions after selection');
+
+            obj.clear_data;
+            for ii = 1:size(newXU, 1)
+                tmp_xu = newXU(ii, :);
+                ia = ismember(tmpXU, tmp_xu, 'rows');
+                one_xu = tmp_xu;
+                if ~isempty(tmpXL)
+                    one_XL = tmpXL(ia, :);
+                else
+                    one_XL = [];
+                end
+
+                one_FU = tmpFU(ia, :);
+
+                if ~isempty(tmpFL)
+                    one_FL = tmpFL(ia,:);
+                else
+                    one_FL = [];
+                end
+
+                if ~isempty(tmpFC)
+                    one_FC = tmpFC(ia,:);
+                else
+                    one_FC = [];
+                end
+
+                if ~isempty(tmpFLC)
+                    one_FLC = tmpFLC(ia, :);
+                else
+                    one_FLC = [];
+                end
+                obj.add(one_xu, one_XL, one_FU, one_FL, one_FC, one_FLC);
+
+            end
+
+        end
 
 
         function FU =  FUs(obj)
