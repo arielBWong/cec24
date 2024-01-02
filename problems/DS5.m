@@ -28,7 +28,7 @@ classdef DS5
         function [f, c] = evaluate_u(obj, xu, xl)
             f(:, 1) = (1 - xl(:, 1)) .* (1 + sum(xl(:, 2: obj.K).^2 , 2)) .* xu(:, 1);
             f(:, 2) =  xl(:, 1)  .* (1 + sum(xl(:, 2: obj.K).^2 , 2)) .* xu(:, 1);
-            c = -1 * ((1 - xl(:, 1)) .* xu(:, 1) +  xl(:, 1) .* xu(:, 1) - 2 + 0.2 * floor(5 * ( 1 - xl(:, 1)) .* xu(:, 1) + 1));
+            c = -1 * ((1 - xl(:, 1)) .*  xu(:, 1) +  xl(:, 1) .* xu(:, 1) - 2 + 0.2 * floor(5 * ( 1 - xl(:, 1)) .* xu(:, 1) + 1));
             
         end
         
@@ -44,6 +44,12 @@ classdef DS5
             f2 = xu(1) -  f1;
             pf = [f1', f2'];
             pf = sparse_pf_selection(pf, n);
+        end
+
+        function ps = PS_LL(obj, n, xu)
+            x1 = linspace(0, xu(1), n);
+            xrest = zeros(n, length(obj.ll_bu));
+            ps = [x1', xrest];
         end
         
         function pf = PF_UL(obj, n)

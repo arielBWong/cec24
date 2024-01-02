@@ -77,6 +77,8 @@ initmatrix = unique(initmatrix,'rows', 'stable');
 num_obj = size(pop.F, 2);
 num_con = size(pop.C, 2);
 
+
+
 % keep ND archive
 if termination_criterion == 1
     termination_length = 5;

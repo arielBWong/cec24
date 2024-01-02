@@ -13,7 +13,7 @@ p.gen = Params.LL_gensize;
 p.popsize = Params.LL_popsize;
 
 if vis
-    pf = prob.PF_LL(1025, xu(1, :));
+    pf = prob.PF_LL(129, xu(1, :));
     if isempty(pf)
         pf = [0, 0];
     end

@@ -14,6 +14,8 @@ function nested_EA_forBLOP(varargin)
 
 % causal relation determination
 seed = 1;
+rng(seed,'twister');
+checking_causal_relation = true;
 prob = DS5(5, 4);
 [r, xl_causal_fl] = LL_variable_test(prob);
 
@@ -33,15 +35,20 @@ records = cell(1, 3);
 records{1} = {}; % active population
 records{2} = {}; % nd(accumulated) / generation
 records{3} = []; % igd
+records{4} = []; % FE counts
 
 % run nested EA
 XU = unifrnd(repmat(prob.ul_bl, parameter.UL_popsize,1),repmat(prob.ul_bu,parameter.UL_popsize,1));
 population = solutions();
 
 % process 1st population
+pop_ULcount = 0;
+pop_LLcount = 0;
 for ii = 1: parameter.UL_popsize
     archive_xu = [archive_xu; XU(ii, :)];
-    [population] = Determine_LLsolutions_forUL(XU(ii, :), population, parameter, prob, r);
+    [population, single_xu_ULcount, single_xu_LLcount] = Determine_LLsolutions_forUL(XU(ii, :), population, parameter, prob, r, xl_causal_fl, checking_causal_relation);
+    pop_ULcount = pop_ULcount + single_xu_ULcount;
+    pop_LLcount = pop_LLcount + single_xu_LLcount;
 end
 
 tmp_population = solutions();
@@ -57,11 +64,22 @@ clear tmp_population2
 
 current_nd_solutions = records{2}(end);
 ndFU = current_nd_solutions.FUs;
-igd = mean(min(pdist2(pf,ndFU),[],2));
+igd = mean(min(pdist2(pf, ndFU),[],2));
 records{3} = [records{3}, igd];
 
+records{4} = [records{4}; pop_ULcount, pop_LLcount];
 
-for jj = 1: 1%parameter.UL_gensize
+
+visualizationND = true;
+if visualizationND
+    scatter(pf(:, 1), pf(:, 2), 20, 'k', 'filled'); hold on;
+    grid on;
+    box on;
+    scatter(ndFU(:, 1), ndFU(:, 2), 50, 'red', 'filled');
+end
+
+
+for jj = 1: parameter.UL_gensize
 
     % Generate child population
     param_tmp.popsize = parameter.UL_popsize;
@@ -71,13 +89,18 @@ for jj = 1: 1%parameter.UL_gensize
     archive_xu = [archive_xu; childXU];
 
     % evaluate child population
+    pop_ULcount = 0;
+    pop_LLcount = 0;
     for ii = 1:size(childXU, 1)
-        [population] = Determine_LLsolutions_forUL(childXU(ii, :), population, parameter, prob, r);
+        [population, single_xu_ULcount, single_xu_LLcount] = Determine_LLsolutions_forUL(childXU(ii, :), population, parameter, prob, r, xl_causal_fl, checking_causal_relation);
+        pop_ULcount = pop_ULcount + single_xu_ULcount;
+        pop_LLcount = pop_LLcount + single_xu_LLcount;
     end
 
     % ND sort
     population.DSS_newpopulation(parameter.UL_popsize, prob);
 
+    % save results
     tmp_population = solutions();
     tmp_population.copy(population);
     records{1} = [records{1}, tmp_population]; % active population
@@ -85,14 +108,23 @@ for jj = 1: 1%parameter.UL_gensize
 
     tmp_population2 = solutions();
     tmp_population2.copy(population);
-    tmp_population2.nd_sort();  % No keeping all XL for ND front xu
+    tmp_population2.nd_sort();                   % No keeping all XL for ND front xu
     records{2} = [records{2}, tmp_population2];  % nd (accumulated) / generation
     clear tmp_population2
+ 
 
     current_nd_solutions = records{2}(end);
     ndFU = current_nd_solutions.FUs;
     igd = mean(min(pdist2(pf,ndFU),[],2));
     records{3} = [records{3}, igd];
+
+    if visualizationND
+        grid on;
+        box on;
+        scatter(ndFU(:, 1), ndFU(:, 2), 50, 'red', 'filled');
+    end
+
+    records{4} = [records{4}; pop_ULcount, pop_LLcount];
 end
 
 % record finally ND front
@@ -109,9 +141,6 @@ end
 save_name = sprintf("%s_CRchecking_seed_%d.mat", prob.name, seed);
 save_file = fullfile(pwd, 'results', prob.name, save_name);
 save(save_file, 'records');
-
-
-
 
 end
 
@@ -155,27 +184,6 @@ end
 
 end
 
-% Partial search evaluation objective function
-function [f] = partial_search_objective(x, xu, xl, v, prob)
-% v indicate LL variables relating to UL objective
 
-[tmp_xu, tmp_xl] = assign_partial_xl(x, xu, xl, v);
-[f, ~] = prob.evaluate_u(tmp_xu, tmp_xl);
-end
-
-function [c] = partial_search_constraint(x, xu, xl, v, prob)
-
-[tmp_xu, tmp_xl] = assign_partial_xl(x, xu, xl, v);
-[~, c] = prob.evaluate_u(tmp_xu, tmp_xl);
-end
-
-function[tmp_xu, tmp_xl] = assign_partial_xl(x, xu, xl, v)
-num_x = size(x, 1);
-tmp_v = repmat(v, num_x, 1);
-
-tmp_xu = repmat(xu, num_x, 1);
-tmp_xl = repmat(xl, num_x, 1);
-tmp_xl(tmp_v) = x;
-end
 
 

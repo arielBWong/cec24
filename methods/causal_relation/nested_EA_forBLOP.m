@@ -1,5 +1,5 @@
-function nested_EA_forBLOP(varargin)
-
+function nested_EA_forBLOP(seed, prob_str, checking_causal_relation)
+tic;
 % % create argument parser
 % p = inputParser;
 % addParameter(p, 'prob_str', 'DS5(1, 9)');
@@ -13,8 +13,11 @@ function nested_EA_forBLOP(varargin)
 
 
 % causal relation determination
-seed = 1;
-prob = DS5(5, 4);
+% seed = 1;
+rng(seed,'twister');
+% checking_causal_relation = true;
+prob = eval(prob_str);
+
 [r, xl_causal_fl] = LL_variable_test(prob);
 
 pf_file = fullfile(pwd, 'problems', strcat(prob.name, '_ULPF1025.mat'));
@@ -44,7 +47,7 @@ pop_ULcount = 0;
 pop_LLcount = 0;
 for ii = 1: parameter.UL_popsize
     archive_xu = [archive_xu; XU(ii, :)];
-    [population, single_xu_ULcount, single_xu_LLcount] = Determine_LLsolutions_forUL(XU(ii, :), population, parameter, prob, r, xl_causal_fl);
+    [population, single_xu_ULcount, single_xu_LLcount] = Determine_LLsolutions_forUL(XU(ii, :), population, parameter, prob, r, xl_causal_fl, checking_causal_relation);
     pop_ULcount = pop_ULcount + single_xu_ULcount;
     pop_LLcount = pop_LLcount + single_xu_LLcount;
 end
@@ -62,10 +65,19 @@ clear tmp_population2
 
 current_nd_solutions = records{2}(end);
 ndFU = current_nd_solutions.FUs;
-igd = mean(min(pdist2(pf,ndFU),[],2));
+igd = mean(min(pdist2(pf, ndFU),[],2));
 records{3} = [records{3}, igd];
 
 records{4} = [records{4}; pop_ULcount, pop_LLcount];
+
+
+visualizationND = true;
+if visualizationND
+    scatter(pf(:, 1), pf(:, 2), 20, 'k', 'filled'); hold on;
+    grid on;
+    box on;
+    scatter(ndFU(:, 1), ndFU(:, 2), 50, 'red', 'filled');
+end
 
 
 for jj = 1: parameter.UL_gensize
@@ -81,29 +93,46 @@ for jj = 1: parameter.UL_gensize
     pop_ULcount = 0;
     pop_LLcount = 0;
     for ii = 1:size(childXU, 1)
-        [population, single_xu_ULcount, single_xu_LLcount] = Determine_LLsolutions_forUL(childXU(ii, :), population, parameter, prob, r, xl_causal_fl);
+        [population, single_xu_ULcount, single_xu_LLcount] = Determine_LLsolutions_forUL(childXU(ii, :), population, parameter, prob, r, xl_causal_fl, checking_causal_relation);
         pop_ULcount = pop_ULcount + single_xu_ULcount;
         pop_LLcount = pop_LLcount + single_xu_LLcount;
     end
 
+    % save ND front, has to be done here
+    tmp_population2 = solutions();
+    tmp_population2.copy(records{2}(end));
+    tmp_2Npopulation = solutions();
+    tmp_2Npopulation.copy(population);
+    tmp_population2.merge(tmp_2Npopulation);
+    tmp_population2.nd_sort();                   % No keeping all XL for ND front xu
+    records{2} = [records{2}, tmp_population2];  % nd (accumulated) / generation
+
     % ND sort
     population.DSS_newpopulation(parameter.UL_popsize, prob);
 
+    % save active population 
     tmp_population = solutions();
     tmp_population.copy(population);
-    records{1} = [records{1}, tmp_population]; % active population
+    records{1} = [records{1}, tmp_population]; % active population    
     clear tmp_population;
-
-    tmp_population2 = solutions();
-    tmp_population2.copy(population);
-    tmp_population2.nd_sort();  % No keeping all XL for ND front xu
-    records{2} = [records{2}, tmp_population2];  % nd (accumulated) / generation
     clear tmp_population2
-
+ 
+    % save igd
     current_nd_solutions = records{2}(end);
     ndFU = current_nd_solutions.FUs;
     igd = mean(min(pdist2(pf,ndFU),[],2));
     records{3} = [records{3}, igd];
+
+    if visualizationND
+        clf;
+        scatter(pf(:, 1), pf(:, 2), 20, 'k', 'filled'); hold on;
+        scatter(ndFU(:, 1), ndFU(:, 2), 50, 'red', 'filled');
+        grid on;
+        box on;
+        t = sprintf("generation %d ", jj + 1);
+        title(t)
+        pause(1);
+    end
 
     records{4} = [records{4}; pop_ULcount, pop_LLcount];
 end
@@ -119,13 +148,14 @@ if ~exist(problem_folder, "dir")
     mkdir(problem_folder);
 end
 
-save_name = sprintf("%s_CRchecking_seed_%d.mat", prob.name, seed);
+if checking_causal_relation
+    save_name = sprintf("%s_CRchecking_seed_%d.mat", prob.name, seed);
+else
+    save_name = sprintf("%s_EA_seed_%d.mat", prob.name, seed);
+end
 save_file = fullfile(pwd, 'results', prob.name, save_name);
 save(save_file, 'records');
-
-
-
-
+toc;
 end
 
 
