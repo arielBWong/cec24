@@ -1,16 +1,4 @@
 function nested_EA_forBLOP(seed, prob_str, checking_causal_relation)
-tic;
-% % create argument parser
-% p = inputParser;
-% addParameter(p, 'prob_str', 'DS5(1, 9)');
-% addParameter(p, 'strategy', 'net4XLNDinit');
-% addParameter(p, 'seed', 1);
-% % parse input parameter
-% prob_str = p.Results.prob_str;
-% strategy = p.Results.strategy;
-% seed = p.Results.seed;
-%-------------------------------
-
 
 % causal relation determination
 % seed = 1;
@@ -23,9 +11,8 @@ prob = eval(prob_str);
 pf_file = fullfile(pwd, 'problems', strcat(prob.name, '_ULPF1025.mat'));
 load(pf_file);
 
-
 % load parameter
-parameter_setting();
+% parameter_setting();
 load('parameter.mat');
 
 % archive xu for eliminating repeated solutions
@@ -54,13 +41,13 @@ end
 
 tmp_population = solutions();
 tmp_population.copy(population);
-records{1} = [records{1}, tmp_population]; % active population
+records{1} = [records{1}, tmp_population];      % active population
 clear tmp_population;
 
 tmp_population2 = solutions();
 tmp_population2.copy(population);
-tmp_population2.nd_sort();  % No keeping all XL for ND front xu
-records{2} = [records{2}, tmp_population2];  % nd (accumulated) / generation
+tmp_population2.nd_sort();                      % No keeping all XL for ND front xu
+records{2} = [records{2}, tmp_population2];     % nd (accumulated) / generation
 clear tmp_population2
 
 current_nd_solutions = records{2}(end);
@@ -71,7 +58,7 @@ records{3} = [records{3}, igd];
 records{4} = [records{4}; pop_ULcount, pop_LLcount];
 
 
-visualizationND = true;
+visualizationND = false;
 if visualizationND
     scatter(pf(:, 1), pf(:, 2), 20, 'k', 'filled'); hold on;
     grid on;
@@ -80,8 +67,8 @@ if visualizationND
 end
 
 
-for jj = 1: parameter.UL_gensize
-
+for jj = 1: parameter.UL_gensize-1
+    fprintf("UL generation %d \n", jj + 1);
     % Generate child population
     param_tmp.popsize = parameter.UL_popsize;
     childXU = generate_child_DE(prob.ul_bl, prob.ul_bu, population.xus, param_tmp);
@@ -108,7 +95,7 @@ for jj = 1: parameter.UL_gensize
     records{2} = [records{2}, tmp_population2];  % nd (accumulated) / generation
 
     % ND sort
-    population.DSS_newpopulation(parameter.UL_popsize, prob);
+    population.DSS_newpopulation(parameter.UL_popsize, prob.ul_bl, prob.ul_bu);
 
     % save active population 
     tmp_population = solutions();
@@ -148,14 +135,16 @@ if ~exist(problem_folder, "dir")
     mkdir(problem_folder);
 end
 
-if checking_causal_relation
+if checking_causal_relation == 1
     save_name = sprintf("%s_CRchecking_seed_%d.mat", prob.name, seed);
+elseif checking_causal_relation == 2
+    save_name = sprintf("%s_CRchecking_modified_seed_%d.mat", prob.name, seed);
 else
     save_name = sprintf("%s_EA_seed_%d.mat", prob.name, seed);
 end
 save_file = fullfile(pwd, 'results', prob.name, save_name);
 save(save_file, 'records');
-toc;
+
 end
 
 

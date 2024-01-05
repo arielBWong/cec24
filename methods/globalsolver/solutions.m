@@ -1,13 +1,14 @@
 classdef solutions < handle
     properties
-        xu = [];
+        xu = []; 
         XL = [];
         XU = [];
-        XUE = [];
+        XUE = []; % expanded xu, for constructing training data for NN 
         FU = [];
         FL = [];
         FC = [];
         FLC = [];
+        addon = [];
     end
 
     methods
@@ -21,9 +22,10 @@ classdef solutions < handle
             obj.FL = [];
             obj.FC = [];
             obj.FLC = [];
+            obj.addon = [];
         end
 
-        function add(obj, xu, XL, FU, FL, FC, FLC)
+        function add(obj, xu, XL, FU, FL, FC, FLC, varargin)
             % this forms list of cell array
             obj.xu = [obj.xu, {xu}];
             obj.XL = [obj.XL, {XL}];
@@ -39,6 +41,10 @@ classdef solutions < handle
             obj.FC = [obj.FC, {FC}];
             obj.FL = [obj.FL, {FL}];
             obj.FLC = [obj.FLC, {FLC}];
+
+            if ~isempty(varargin)
+                obj.addon = [obj.addon, {varargin{1}}];
+            end
         end
 
         function merge(obj,  new_solutions)
@@ -51,6 +57,7 @@ classdef solutions < handle
             obj.FC = [obj.FC, new_solutions.FC];
             obj.FLC = [obj.FLC, new_solutions.FLC];
             obj.XUE = [obj.XUE, new_solutions.XUE];
+            obj.addon = [obj.addon, new_solutions.addon];
         end
 
         function copy(obj, another_solutions)
@@ -75,6 +82,7 @@ classdef solutions < handle
             tmpFLC = obj.FLCs;
             tmpXU = obj.XUs;
             tmpXL = obj.XLs;
+            tmpAddon = obj.addons;
 
             % ND sort wrapper
             pop.X = tmpXU;
@@ -83,6 +91,7 @@ classdef solutions < handle
             pop.dummy1 = tmpXL;
             pop.dummy2 = tmpFLC;
             pop.dummy3 = tmpFL;
+            pop.dummy4 = tmpAddon;
 
             [pop, front_idx] = pop_sort(pop);
             nd_front_id = front_idx == 1;
@@ -113,6 +122,12 @@ classdef solutions < handle
                     ndFLC = pop.dummy2(nd_front_id, :);
                 else
                     ndFLC = [];
+                end
+
+                if ~isempty(pop.dummy4)
+                    ndAddon = pop.dummy4(nd_front_id, :);
+                else
+                    ndAddon = [];
                 end
 
                 % distribute back to object variables
@@ -152,7 +167,13 @@ classdef solutions < handle
                         one_FLC = [];
                     end
 
-                    obj.add(one_xu, one_XL, one_FU, one_FL, one_FC, one_FLC);
+                    if ~isempty(ndAddon)
+                        one_addon = ndAddon(ia, :);
+                    else
+                        one_addon = [];
+                    end
+
+                    obj.add(one_xu, one_XL, one_FU, one_FL, one_FC, one_FLC, one_addon);
                 end
             else % this condition keep all record related to ND xu
                 unique_ndXU = unique(ndXU, 'rows', 'stable');
@@ -193,7 +214,7 @@ classdef solutions < handle
             end
         end
 
-        function DSS_newpopulation(obj, popsize, prob)
+        function DSS_newpopulation(obj, popsize, lb, ub)
             % convert cell array to matrix
             tmpFU = obj.FUs;
             tmpFL = obj.FLs;
@@ -201,6 +222,7 @@ classdef solutions < handle
             tmpFLC = obj.FLCs;
             tmpXU = obj.XUs;
             tmpXL = obj.XLs;
+            tmpAddon = obj.addons;
 
             % ND sort wrapper
             pop.X = tmpXU;
@@ -209,6 +231,7 @@ classdef solutions < handle
             pop.dummy1 = tmpXL;
             pop.dummy2 = tmpFLC;
             pop.dummy3 = tmpFL;
+            pop.dummy4 = tmpAddon;
 
             [pop, front_idx] = pop_sort(pop);
             nd_idx_binary = front_idx == 1;
@@ -218,7 +241,7 @@ classdef solutions < handle
             num_ndxu = size(unique_ndXU, 1);
 
             if num_ndxu > popsize  % DSS selection
-                sparseXID = Sparse_Selection(select_candidateID, pop.X, prob.ul_bl, prob.ul_bu, popsize);
+                sparseXID = Sparse_Selection(select_candidateID, pop.X, lb, ub, popsize);
                 select_XU_id = select_candidateID(sparseXID);
                 % XU selected by select_XU_id should be unique (if not something is wrong)
             else
@@ -228,14 +251,14 @@ classdef solutions < handle
             end
 
 
-            newXU = pop.X(select_XU_id);
+            newXU = pop.X(select_XU_id, :);
             tmp_newXU = unique(newXU, "rows", 'stable');
             assert(size(tmp_newXU, 1) == size(newXU, 1), 'DSS selection return repeated solutions after selection');
 
             obj.clear_data;
             for ii = 1:size(newXU, 1)
                 tmp_xu = newXU(ii, :);
-                ia = ismember(tmpXU, tmp_xu, 'rows');
+                ia = ismember(tmpXU, tmp_xu, 'rows'); % in 2N population, childX and old X have no repeated solution
                 one_xu = tmp_xu;
                 if ~isempty(tmpXL)
                     one_XL = tmpXL(ia, :);
@@ -262,7 +285,13 @@ classdef solutions < handle
                 else
                     one_FLC = [];
                 end
-                obj.add(one_xu, one_XL, one_FU, one_FL, one_FC, one_FLC);
+
+                if ~isempty(tmpAddon)
+                    one_addon = tmpAddon(ia, :);
+                else
+                    one_addon = [];
+                end
+                obj.add(one_xu, one_XL, one_FU, one_FL, one_FC, one_FLC, one_addon);
 
             end
 
@@ -297,6 +326,14 @@ classdef solutions < handle
             XL = cat(1, obj.XL{:});
         end
 
+        function addons = addons(obj)
+            if isempty(obj.addon)
+                addons = [];
+            else
+                addons = cat(1, obj.addon{:});
+            end
+        end
+
 
         function clear_data(obj)
             obj.XU = [];
@@ -307,6 +344,7 @@ classdef solutions < handle
             obj.FL = [];
             obj.FC = [];
             obj.FLC = [];
+            obj.addon = [];
         end
 
     end

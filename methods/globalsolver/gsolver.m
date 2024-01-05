@@ -77,8 +77,6 @@ initmatrix = unique(initmatrix,'rows', 'stable');
 num_obj = size(pop.F, 2);
 num_con = size(pop.C, 2);
 
-
-
 % keep ND archive
 if termination_criterion == 1
     termination_length = 5;
@@ -97,36 +95,6 @@ clear single_pop
 if visualize
     F = gen_ndarchive(1).FUs;
     plotMO(f1, F, pf, 0);
-%     X_pop =  unifrnd(repmat(lb,param.popsize,1),repmat(ub,param.popsize,1));
-%     xlabel('f1','FontSize', 22);
-%     ylabel('f2', 'FontSize', 22);
-%     hYLabel = get(gca,'YLabel');
-%     set(hYLabel,'rotation',0,'VerticalAlignment','middle');
-%     % title('LL initialization with PS generator','FontSize', 22);
-%     legend( 'LL PF', 'LL initialization', 'Location', 'northeast');
-%     lgd = legend;
-%     lgd.FontSize = 22;
-%     lgd.Location = 'northeast';
-%     
-%     f2 = figure(3);
-%     output  = funh_obj(X_pop);
-%     scatter(pf(:, 1), pf(:,2), 50, 'k', 'filled'); hold on;
-%     scatter(output(:, 1), output(:, 2),  30, 'b', 'filled');
-%     xlabel('f1','FontSize', 22);
-%     ylabel('f2', 'FontSize', 22);
-%     hYLabel = get(gca,'YLabel');
-%     set(hYLabel,'rotation',0,'VerticalAlignment','middle');
-%     % title('LL initialization  with random initialization','FontSize', 20);
-%     legend('LL PF', 'LL solutions');
-%     lgd = legend;
-%     lgd.FontSize = 22;
-%     lgd.Location = 'SouthEast';
-%     box on;
-%     grid on;  
-%     fprintf('this plot should be only for run mfile, Batch2_vx_investigate');
-%     return;
-%     
-    
 end
 
 % Each generation active population
@@ -134,8 +102,6 @@ gen_archive = [repmat([1], size(pop.X, 1), 1), pop.X, pop.F, pop.C];
 if ~isempty(external_funh)
     external_funh(pop);
 end
-
-
 
 gen = 1;
 parentX = pop.X;

@@ -1,32 +1,44 @@
 clear all;
 clc;
 
+
+mail = 'ariel.bingwang@outlook.com';
+password = 'Carol1984123'; 
+server = 'smtp-mail.outlook.com';
+props = java.lang.System.getProperties;
+props.setProperty('mail.smtp.port', '587');
+props.setProperty('mail.smtp.auth','true');
+props.setProperty('mail.smtp.starttls.enable','true');
+setpref('Internet','E_mail', mail);
+setpref('Internet','SMTP_Server', server);
+setpref('Internet','SMTP_Username', mail);
+setpref('Internet','SMTP_Password', password);
+
 relative_path = fullfile(pwd, 'problems');
 addpath(relative_path);
-relative_path = fullfile(pwd,'methods', 'globalsolver');
+relative_path = fullfile(pwd, 'methods', 'globalsolver');
 addpath(relative_path);
-relative_path = fullfile(pwd,'methods', 'globalsolver', 'ND_Sort');
-addpath(relative_path);
-relative_path = fullfile(pwd,'methods', 'causal_relation');
+relative_path = fullfile(pwd, 'methods', 'globalsolver', 'ND_Sort');
+addpath(relative_path);   
+relative_path = fullfile(pwd, 'methods', 'causal_relation');
 addpath(relative_path);
 
+relative_path = fullfile(pwd, 'methods');
+addpath(relative_path);
 
-% setpref('Internet','SMTP_Server','smtp-mail.outlook.com');
-% setpref('Internet','E_mail','bing.wang@adfa.edu.au');
-% sendmail('ariel.bingwang@outlook.com','Hello From MATLAB!', ...
-%     'Thanks for using sendmail.');
+% nested_EA_forBLOP(1, 'DS5(5,4)', 2);
 
-problems = {'DS5(5,4)'};
+problems = {'DS4(5,4)', 'DS5(5,4)'};
 np = length(problems);
 seedmax = 21;
-choices = {true, false};
+choices = {2};
 nc = length(choices);
 
 strc_id = 1;
 for i = 1 : np
     for j = 1 : seedmax
         for k = 1 : nc
-            onerun_parameters(strc_id). problem_str = prob_str{i};
+            onerun_parameters(strc_id). problem_str = problems{i};
             onerun_parameters(strc_id). seed = j;
             onerun_parameters(strc_id). strategy = choices{k}; % proposed  method
             strc_id = strc_id + 1;
@@ -40,3 +52,11 @@ parfor ii = 1:nrun
         onerun_parameters(ii).problem_str, ...
         onerun_parameters(ii).strategy);
 end
+
+
+
+
+
+setpref('Internet','E_mail','ariel.bingwang@outlook.com');
+sendmail('bing.wang@adfa.edu.au','Your code has finished running!', ...
+    'As above');
