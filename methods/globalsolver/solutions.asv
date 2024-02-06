@@ -83,7 +83,6 @@ classdef solutions < handle
             tmpXL = obj.XLs;
             tmpAddon = obj.addons;
 
-            
             % ND sort wrapper
             pop.X = tmpXU;
             pop.F = tmpFU;
@@ -309,17 +308,6 @@ classdef solutions < handle
             tmpXL = obj.XLs;
             tmpAddon = obj.addons;
 
-            % move repeated solutions
-            [tmpXU, ia] = unique(tmpXU, 'rows', 'stable');
-            tmpFU = tmpFU(ia, :);
-
-            % tmpFL = tmpFL(ia, :);
-            if ~isempty(tmpFC)
-                tmpFC = tmpFC(ia, :);
-            end
-            % tmpFLC = tmpFLC(ia, :);
-            % tmpXL = tmpXL(ia, :);
-
             % ND sort wrapper
             pop.X = tmpXU;
             pop.F = tmpFU;
@@ -332,11 +320,12 @@ classdef solutions < handle
             [pop, front_idx] = pop_sort(pop);
             
             % assign pop back to solutions.
-            obj.clear_data();            
-            obj.add(pop.X, pop.dummy1, pop.F, pop.dummy3, pop.C, pop.dummy2);
+            obj.clear_data();
+            
+             
+            
+             
 
-            nd_id = front_idx == 1;
-            num_nd = sum(nd_id);   
         end
 
 

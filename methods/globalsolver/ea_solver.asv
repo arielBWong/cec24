@@ -63,7 +63,7 @@ if visualize && record
     open(obj);
 end
 if visualize 
-    f1 = figure(1);
+    f1 = figure('Position',[100, 100, 600, 600]);
 end
 
 % Initialization of solutions
@@ -103,9 +103,10 @@ nd_archive.copy(population)
 nd_archive.nd_sort();
 
 if visualize
-    F = nd_archive.FUs;
-    F = population.FUs;
-    plotMO(f1, F, pf, 0);
+%     F = nd_archive.FUs;
+%     F = population.FUs;
+%     plotMO(f1, F, pf, 0);
+    plotMO_seperateFeasible(f1, population.FUs, population.FCs, pf, 1);
 end
 
 % start EA search 
@@ -132,14 +133,15 @@ for ii = 1:param.gen-1
     nd_archive.add(child_X, [], F, [], C, [], add_on)
     nd_archive.nd_sort();
 
-    if visualize
-        F = nd_archive.FUs;
-        F = population.FUs;
-        plotMO(f1, F, pf, ii+1);
-    end
-
     % 2N->N population
     population.DSS_newpopulation(param.popsize, lb, ub);
+
+    if visualize
+        %         F = nd_archive.FUs;
+        %         F = population.FUs;
+        %         plotMO(f1, F, pf, ii+1);
+        plotMO_seperateFeasible(f1, population.FUs, population.FCs, pf, ii+1);
+    end
 end
 
 population.nd_sort();
@@ -165,7 +167,7 @@ infeasible_id = ~feasible_id;
 fc = f(infeasible_id, :);
 scatter(fc(:, 1), fc(:, 2), 50, 'blue', 'LineWidth',2);
 title(num2str(gen));
-
+pause(0.1);
 
 end
 

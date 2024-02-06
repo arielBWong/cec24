@@ -1,3 +1,13 @@
-problem name, Causal modified IGD, Causal median IGD, EA median IGD,  Causal modified ULFE, causal ULFE,  EA ULFE, ...Causal modified LLFE, Causal LLFE, EA LLFE 
-DS4,0.0779 ,0.0438 ,0.9406 ,356707 ,3046898 ,8399 ,356287 ,366149 ,357208 ,
-DS5,0.0796 ,0.0424 ,0.9255 ,364745 ,3082373 ,8524 ,364125 ,370722 ,358117 ,
+problem name, Causal IGD, Dual IGD,  Significance, EA median IGD,  Significance 
+DS4 & 0.0217 &0.0143 &  $\uparrow_{1}$ &  0.1311 &  $\downarrow_{1}$ &1100825 &1227502 &1145726 \\
+DS5 & 0.0203 &0.0184 &  $\uparrow_{1}$ &  0.1086 &  $\downarrow_{1}$ &1079089 &1232838 &1149348 \\
+DS4D & 0.0207 &4998.4879 & $\downarrow_{1}$ & 34.8516 &  $\downarrow_{1}$ &1100059 &1230944 &1143270 \\
+DS5D & 0.0198 &4998.4830 & $\downarrow_{1}$ & 55.7071 &  $\downarrow_{1}$ &1090139 &1220882 &1150980 \\
+DS4 & 0.0210 &0.0178 &  $\uparrow_{1}$ &  0.3635 &  $\downarrow_{1}$ &2344570 &2408799 &2245923 \\
+DS5 & 0.0198 &0.0199 & $\approx$0.3320 &  $\downarrow_{1}$ &2198597 &2416806 &2260773 \\
+DS4D & 0.0189 &43216.4394 & $\downarrow_{1}$ & 121.0084 &  $\downarrow_{1}$ &2361048 &2403891 &2243470 \\
+DS5D & 0.0182 &43216.4372 & $\downarrow_{1}$ & 33.2570 &  $\downarrow_{1}$ &2377011 &2403916 &2272927 \\
+DS4 & 0.0404 &0.0204 &  $\uparrow_{1}$ &  0.9771 &  $\downarrow_{1}$ &3905411 &3987602 &3683877 \\
+DS5 & 0.0387 &0.0211 &  $\uparrow_{1}$ &  0.9701 &  $\downarrow_{1}$ &3862278 &3992119 &3696827 \\
+DS4D & 0.0379 &209950.1971 & $\downarrow_{1}$ & 364.1524 &  $\downarrow_{1}$ &3774435 &4000620 &3692495 \\
+DS5D & 0.0404 &209950.1108 & $\downarrow_{1}$ & 1.9946 &  $\downarrow_{1}$ &3753189 &3996109 &3753358 \\

@@ -1,5 +1,5 @@
 % show distribution of feasbile and infeasible solutions
-prob = DS5(5, 4);
+prob = DS4(5, 4);
 
 xu = linspace(1, 2, 100);
 xl1 = linspace(0, 1, 100);

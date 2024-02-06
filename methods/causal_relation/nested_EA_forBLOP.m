@@ -13,13 +13,18 @@ load(pf_file);
 
 % load parameter
 % parameter_setting();
-load('parameter.mat');
+parameter.UL_popsize = 20;
+parameter.UL_gensize = 50;
+parameter.LL_popsize = 5 * length(prob.ll_bu);
+parameter.LL_gensize = 10 * length(prob.ll_bu);
+
+max_FE = parameter.UL_popsize * parameter.UL_gensize * parameter.LL_popsize * parameter.LL_gensize;
 
 % archive xu for eliminating repeated solutions
 archive_xu = [];
 
 % set up output records
-records = cell(1, 3);
+records = cell(1, 4);
 records{1} = {}; % active population
 records{2} = {}; % nd(accumulated) / generation
 records{3} = []; % igd
@@ -27,16 +32,21 @@ records{4} = []; % FE counts
 
 % run nested EA
 XU = unifrnd(repmat(prob.ul_bl, parameter.UL_popsize,1),repmat(prob.ul_bu,parameter.UL_popsize,1));
-population = solutions();
 
+population0 = solutions();
+population0_LLcount = 0;
+
+population = solutions();
 % process 1st population
 pop_ULcount = 0;
 pop_LLcount = 0;
 for ii = 1: parameter.UL_popsize
+    %fprintf("gen 1 id %d \n", ii);
     archive_xu = [archive_xu; XU(ii, :)];
-    [population, single_xu_ULcount, single_xu_LLcount] = Determine_LLsolutions_forUL(XU(ii, :), population, parameter, prob, r, xl_causal_fl, checking_causal_relation);
+    [population, single_xu_ULcount, single_xu_LLcount, population0] = Determine_LLsolutions_forUL(XU(ii, :), population, parameter, prob, r, xl_causal_fl, checking_causal_relation, population0);
     pop_ULcount = pop_ULcount + single_xu_ULcount;
     pop_LLcount = pop_LLcount + single_xu_LLcount;
+    population0_LLcount = population0_LLcount + single_xu_LLcount;
 end
 
 tmp_population = solutions();
@@ -54,8 +64,14 @@ current_nd_solutions = records{2}(end);
 ndFU = current_nd_solutions.FUs;
 igd = mean(min(pdist2(pf, ndFU),[],2));
 records{3} = [records{3}, igd];
-
 records{4} = [records{4}; pop_ULcount, pop_LLcount];
+
+if checking_causal_relation == 1
+    population0.nd_sort();
+    ndFU = population0.FUs;
+    igd = mean(min(pdist2(pf, ndFU),[],2));
+    records{5} = [population0_LLcount, igd]; % FE, igd
+end
 
 
 visualizationND = false;
@@ -67,7 +83,7 @@ if visualizationND
 end
 
 
-for jj = 1: parameter.UL_gensize-1
+for jj = 1: parameter.UL_gensize % using other stopping condition
     fprintf("UL generation %d \n", jj + 1);
     % Generate child population
     param_tmp.popsize = parameter.UL_popsize;
@@ -120,8 +136,15 @@ for jj = 1: parameter.UL_gensize-1
         title(t)
         pause(1);
     end
-
     records{4} = [records{4}; pop_ULcount, pop_LLcount];
+    
+    if termination_condition(records, max_FE)
+        % adjust records;
+        records{3}(end) = []; % igd
+        records{4}(end, :) = []; % FE counts
+        break;
+    end
+
 end
 
 % record finally ND front
@@ -135,18 +158,30 @@ if ~exist(problem_folder, "dir")
     mkdir(problem_folder);
 end
 
+nl = length(prob.ll_bl);
 if checking_causal_relation == 1
-    save_name = sprintf("%s_CRchecking_seed_%d.mat", prob.name, seed);
+    save_name = sprintf("%s_CRchecking_nl_%d_seed_%d.mat", prob.name, nl, seed);
 elseif checking_causal_relation == 2
-    save_name = sprintf("%s_CRchecking_modified_seed_%d.mat", prob.name, seed);
+    save_name = sprintf("%s_CRchecking_nl_%d_modified_seed_%d.mat", prob.name, nl, seed);
+elseif checking_causal_relation == 3
+    save_name = sprintf("%s_dualpop_nl_%d_modified_seed_%d.mat", prob.name, nl, seed);
 else
-    save_name = sprintf("%s_EA_seed_%d.mat", prob.name, seed);
+    save_name = sprintf("%s_EA_nl_%d_seed_%d.mat", prob.name, nl, seed);
 end
 save_file = fullfile(pwd, 'results', prob.name, save_name);
 save(save_file, 'records');
 
 end
 
+function flag = termination_condition(records, max_FE)
+flag = false;
+FE_perGen = records{4};
+FE_perGen = sum(FE_perGen, 2);
+accumulated_FE = sum(FE_perGen);
+if accumulated_FE > max_FE
+    flag = true;
+end
+end
 
 
 function [r, xl_causal_fl] = LL_variable_test(prob)

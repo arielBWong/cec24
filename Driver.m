@@ -1,7 +1,6 @@
 clear all;
 clc;
 
-
 mail = 'ariel.bingwang@outlook.com';
 password = 'Carol1984123'; 
 server = 'smtp-mail.outlook.com';
@@ -22,16 +21,18 @@ relative_path = fullfile(pwd, 'methods', 'globalsolver', 'ND_Sort');
 addpath(relative_path);   
 relative_path = fullfile(pwd, 'methods', 'causal_relation');
 addpath(relative_path);
+relative_path = fullfile(pwd, 'postprocess');
+addpath(relative_path);
 
 relative_path = fullfile(pwd, 'methods');
 addpath(relative_path);
 
-% nested_EA_forBLOP(1, 'DS5(5,4)', 2);
+nested_EA_forBLOP(1, 'DS4D(3,2)', 3);
 
-problems = {'DS4(5,4)', 'DS5(5,4)'};
+problems = {'DS4(5,4)', 'DS5(5,4)', 'DS4D(5, 4)', 'DS5D(5, 4)', 'DS4(4, 3)', 'DS5(4, 3)', 'DS4D(4, 3)', 'DS5D(4, 3)', 'DS4(3,2)', 'DS5(3,2)', 'DS4D(3, 2)', 'DS5D(3, 2)',};
 np = length(problems);
 seedmax = 21;
-choices = {2};
+choices = {0, 3};
 nc = length(choices);
 
 strc_id = 1;

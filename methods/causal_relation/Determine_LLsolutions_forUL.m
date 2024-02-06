@@ -1,9 +1,12 @@
-function [population, UL_count, LL_count] = Determine_LLsolutions_forUL(xu, population, parameter, prob, r, xl_causal_fl, checking_causal_relation)
+function [population, UL_count, LL_count, population0, population0_slcount] = Determine_LLsolutions_forUL(xu, population, parameter, prob, r, xl_causal_fl, checking_causal_relation, varargin)
 % xl_causal_fl: 1 - related to fl, 0 - not related to fl
 
 visualization_ULadd = false;
 visualization_UL = false;
 pf = [];
+
+population0 = [];
+population0_slcount = 0;
 
 % fix XL corresponding UL related variables, if necessary
 if r && checking_causal_relation == 1
@@ -11,6 +14,26 @@ if r && checking_causal_relation == 1
     related_to_fl = true;
     [XL, LL_count] = partial_search(xu, xl_causal_fl, prob, parameter, related_to_fl);
     UL_count = 0;
+
+    % ----Only for VAC
+    if ~isempty(varargin)
+        population0 = varargin{1};
+        population0_slcount = LL_count;
+        num_xl = size(XL, 1);
+        insert_randomXL = unifrnd(repmat(prob.ll_bl, num_xl, 1), repmat(prob.ll_bu, num_xl, 1)); % insert random xl into partial search results
+        xl_causal_fu = ~xl_causal_fl;
+        num_vxl = sum(xl_causal_fu);
+        xl_causal_fu = repmat(xl_causal_fu, num_xl, 1);
+        insert_randomXL = insert_randomXL(xl_causal_fu);
+        insert_randomXL = reshape(insert_randomXL, num_xl, num_vxl);
+        population0_tmpxl = XL;
+        population0_tmpxl(xl_causal_fu) = insert_randomXL;
+        [population0_tmpFU, population0_tmpFC] = prob.evaluate_u(repmat(xu, num_xl, 1), population0_tmpxl);
+        [population0_tmpFL, population0_tmpFLC] = prob.evaluate_l(repmat(xu, num_xl, 1), population0_tmpxl);
+        population0.add(xu, population0_tmpxl, population0_tmpFU, population0_tmpFL, population0_tmpFC, population0_tmpFLC);
+    end
+
+
     if visualization_UL
         figure('Position', [100, 100, 600, 600]);
         tmp_fu = prob.evaluate_u(repmat(xu, size(XL, 1), 1), XL);
@@ -56,15 +79,19 @@ elseif r && checking_causal_relation == 2
         tmpXL(tmpv) = X_pop;
 
         figure('Position',[50, 50, 600, 600]);
-        % [tmp_fu, tmp_fc] = prob.evaluate_u(repmat(xu, size(XL, 1), 1), tmpXL);
-        [tmp_fu, tmp_fc] = prob.evaluate_u(repmat(xu, size(XL, 1), 1), XL);
+        [tmp_fu, tmp_fc] = prob.evaluate_u(repmat(xu, size(XL, 1), 1), tmpXL);
+        % [tmp_fu, tmp_fc] = prob.evaluate_u(repmat(xu, size(XL, 1), 1), XL);
 
         feasible_ids = tmp_fc <= 0 ;
         tmp_fu = tmp_fu(feasible_ids, :);
         LL_ps = prob.PS_LL(129, xu);
-        pf = prob.evaluate_u(repmat(xu, 129, 1), LL_ps);
+        [pf, pfc] = prob.evaluate_u(repmat(xu, 129, 1), LL_ps);
+        ids = pfc <=0;
+        pf = pf(ids,:);
         scatter(pf(:, 1), pf(:, 2), 20, 'k', 'filled'); hold on;
         scatter(tmp_fu(:, 1), tmp_fu(:, 2), 30, 'red', 'filled');
+        % xlim([0, 2]);
+        % ylim([0, 2]);
     end
     
     % for partial UL search
@@ -92,6 +119,8 @@ elseif r && checking_causal_relation == 2
     [FL, FLC] = prob.evaluate_l(repmat(xu, size(XL, 1), 1), XL);
     LL_count = LL_count + size(XL, 1);
 
+elseif checking_causal_relation ==3
+    [XL, FL, FLC, LL_count, UL_count] = LL_dualEvolution(xu, parameter, prob, [], false);
 else
     % normal LL search
     [XL, FL, FLC, LL_count] = LL_Evolution(xu, parameter, prob, [], false, 0);
@@ -122,18 +151,31 @@ v = xl_causal_fl == related_to_fl;
 sub_ub = prob.ll_bu(v);
 sub_lb = prob.ll_bl(v);
 
-p.gen = parameter.LL_gensize;
-p.popsize = parameter.LL_popsize;
+% p.gen = parameter.LL_gensize;
+
 if related_to_fl
+    p.gen =  parameter.LL_gensize;
+    p.popsize = parameter.LL_popsize;
     funh_obj = @(x)partial_search_objective_LL(x, xu, v, prob);
     funh_con = @(x)partial_search_constraint_LL(x, xu, v, prob);
+    pf = prob.PF_LL(129, xu);
+    vis = false;
 else
+    p.gen = 20;
+    p.popsize = 20; % parameter.LL_popsize;
     funh_obj = @(x)partial_search_objective_UL(x, xu, xl, v, prob);
     funh_con = @(x)partial_search_constraint_UL(x, xu, xl, v, prob);
+    
+    num = 200;
+    llps = prob.PS_LL(num, xu);
+    [upf, uc] = prob.evaluate_u(repmat(xu, num, 1), llps);
+    id = uc<=0;
+    pf = upf(id, :);
+    vis = false;
 end
 
 LL_nvar = sum(v);
-[XL_partial, ~, ~, archive, ~] = gsolver(funh_obj, LL_nvar, sub_lb, sub_ub, [], funh_con, p, 'visualize', false, 'pf', [], 'termination_criterion', 0);
+[XL_partial, ~, ~, archive, ~] = gsolver(funh_obj, LL_nvar, sub_lb, sub_ub, [], funh_con, p, 'visualize', vis, 'pf', pf, 'termination_criterion', 0);
 
 count = size(archive.sols, 1);
 if related_to_fl
